@@ -26,6 +26,8 @@ class _MyLocationState extends State<MyLocation> {
   _MyLocationState(this._currentLocation) : super();
 
   late String _address;
+  late String _city;
+  late String _departamento;
   LatLng? _currentLocation;
   GPS.Location location = GPS.Location();
   bool isLoading=true;
@@ -76,7 +78,7 @@ class _MyLocationState extends State<MyLocation> {
               ),
             ),
             onPressed: () {
-              Navigator.pop(context, [_currentLocation, _address]);
+              Navigator.pop(context, [_currentLocation, _city, _departamento, _address]);
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 5.0),
@@ -92,7 +94,7 @@ class _MyLocationState extends State<MyLocation> {
         ],
         backgroundColor: Color(0xff243972),
         centerTitle: true,
-        title: Text('Seleccionar ubicaciÃ³n', style: GoogleFonts.nunito(
+        title: Text('Seleccionar ubicación', style: GoogleFonts.nunito(
             fontSize: 20,
             fontWeight: FontWeight.normal,
             color: Colors.white,
@@ -146,8 +148,15 @@ class _MyLocationState extends State<MyLocation> {
                           _getAddress(_cameraPosition.target.latitude, _cameraPosition.target.longitude)
                               .then((value) {
                             setState(() {
-                              _address = "${value.first.street}, ${value.first.locality}";
+                              _departamento = (value[2].administrativeArea != null && value[2].administrativeArea != '')? value[2].administrativeArea!
+                                  :(value[1].administrativeArea != null && value[1].administrativeArea != '')?value[1].administrativeArea!
+                                  :'ASUNCION';
+                              _departamento = _removeAccents(_departamento.toLowerCase()).toUpperCase();
+                              _city = value[1].subAdministrativeArea?.toUpperCase()??value[1].locality?.toUpperCase()??'ASUNCIÓN';
+                              _address = "${value[2].street}, ${value[1].subAdministrativeArea}";
                               _currentLocation=_cameraPosition.target;
+                              print('$_departamento. $_city');
+                              print('$_address');
                             });
                           });
                         },
@@ -219,6 +228,20 @@ class _MyLocationState extends State<MyLocation> {
     }else{
       _initialcameraposition=_currentLocation!;
     }
+
+    _getAddress(_currentLocation!.latitude, _currentLocation!.longitude)
+        .then((value) {
+      setState(() {
+        _address = "${value.first.street}, ${value.first.locality}, length: ${value.length}";
+        // _address = "${value[2].street}, ${value[1].locality}";
+        // _departamento = value[1].administrativeArea??'ASUNCION';
+        // _departamento = _removeAccents(_departamento.toLowerCase()).toUpperCase();
+        // _city = value[1].locality?.toUpperCase()??value[1].subAdministrativeArea?.toUpperCase()??'ASUNCIÓN';
+      });
+    });
+    if(isLoading)
+      isLoading=false;
+
     _marker1=Marker(
         markerId: MarkerId('1'),
         position: _initialcameraposition,
@@ -228,27 +251,32 @@ class _MyLocationState extends State<MyLocation> {
           _getAddress(ltdlng.latitude, ltdlng.longitude)
               .then((value) {
             setState(() {
-              _address = "${value.first.street}, ${value.first.locality}";
+              _address = "${value[2].street}, ${value[1].locality}";
               _currentLocation=ltdlng;
             });
           });
         }
     );
-    _getAddress(_currentLocation!.latitude, _currentLocation!.longitude)
-        .then((value) {
-      setState(() {
-        _address = "${value.first.street}, ${value.first.locality}";
-      });
-    });
-    if(isLoading)
-      isLoading=false;
   }
 
   Future<List<Placemark>> _getAddress(double lat, double long) async {
     List<Placemark> add =
     await placemarkFromCoordinates(lat, long);
-
+    // print('0: ${add[0]}');
+    // print('1: ${add[1]}');
+    // print('2: ${add[2]}');
+    // print('3: ${add[3]}');
+    // print('4: ${add[4]}');
     return add;
+  }
+
+  String _removeAccents(String str){
+    str = str.contains('á')?str.replaceAll('á', 'a'):str;
+    str = str.contains('é')?str.replaceAll('é', 'e'):str;
+    str = str.contains('í')?str.replaceAll('í', 'i'):str;
+    str = str.contains('ó')?str.replaceAll('ó', 'o'):str;
+    str = str.contains('ú')?str.replaceAll('ú', 'u'):str;
+    return str;
   }
 
 }
